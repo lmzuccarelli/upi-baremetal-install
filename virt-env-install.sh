@@ -1,3 +1,8 @@
+#!/bin/bash
+
+set -o pipefail
+set -x
+
 # version
 VERSION="1.0.1 03/2022"
 
@@ -25,6 +30,10 @@ HOST_INTERFACE="eno1"
 IP_ADDRESS="192.168.122.1"
 START_ADDRESS="192.168.122.2"
 END_ADDRESS="192.168.122.254"
+
+# nfs
+NFS_SHARE_DIR="/share/registry"
+HOST_BASE_ADDRESS="192.168.8.122"
 
 # mac address setup
 BOOTSTRAP='52:54:00:3f:de:37'
@@ -392,6 +401,61 @@ EOF
     # approve pending csr
     oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
     exit 0
+  ;;
+  image-registry)
+    
+    # before using this section execute the following
+    # oc edit configs.imageregistry.operator.openshift.io
+    # update the managementState to
+    # managementState: Managed
+    # update the storage sectio to
+    # storage:
+    #   pvc:
+    #     claim: # leave the claim blank
+    # save when completed
+
+    # create storage class and pv
+    echo -e "${VERSION}"
+    echo -e "creating storageclass"
+    cat << EOF > storageclass.yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: sc-nfs
+provisioner: ocp-install/external-nfs
+parameters:
+  path: ${NFS_SHARE_DIR}
+  readOnly: 'false'
+  server: ${HOST_BASE_ADDRESS}
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+EOF
+
+    echo -e "${VERSION}"
+    echo -e "creating pv"
+    cat << EOF > pv.yaml
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: registry-pv
+spec:
+  capacity:
+    storage: 100Gi
+  nfs:
+    server: ${HOST_IP}
+    path: ${HOST_BASE_ADDRESS}
+  accessModes:
+    - ReadWriteMany
+  claimRef:
+    kind: PersistentVolumeClaim
+    namespace: openshift-image-registry
+    name: image-registry-storage
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: sc-nfs
+  volumeMode: Filesystem
+EOF
+  oc create -f storageclass.yaml
+  oc create -f pv.yaml
   ;;
 esac
 
