@@ -14,7 +14,7 @@ Its naive (it has manual steps and mauybe at a  later stage will be fully automa
 
 ### Usage
 
-A simple workflow couls be something like this
+A simple workflow 
 
 ```sh
 
@@ -33,3 +33,7 @@ A simple workflow couls be something like this
 
 
 ```
+
+### Acknowledgement
+
+Thanks to Ryan Hay for his work on [ocp4-metal-install](https://github.com/ryanhay/ocp4-metal-install") 
