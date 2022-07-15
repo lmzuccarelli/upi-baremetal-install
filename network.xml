@@ -1,0 +1,28 @@
+    <network connections='7'>
+        <name>ocp-lab</name>
+        <forward mode='nat'>
+          <nat>
+            <port start='1024' end='65535'/>
+          </nat>
+        </forward>
+        <bridge name='virbr0' stp='on' delay='0'/>
+        <mac address='52:54:00:4c:33:95'/>
+        <domain name='ocp-lab' localOnly='yes'/>
+        <!--<dns>
+          <host ip='192.168.122.1'>
+            <hostname>gateway</hostname>
+          </host>
+        </dns> -->
+        <ip address='192.168.122.1' netmask='255.255.255.0'>
+          <dhcp>
+            <range start='192.168.122.2' end='192.168.122.254'/>
+            <host mac='52:54:00:3f:de:37' ip='192.168.122.253'/>
+            <host mac='52:54:00:f5:9d:d4' ip='192.168.122.2'/>
+            <host mac='52:54:00:70:b9:af' ip='192.168.122.3'/>
+            <host mac='52:54:00:fd:6a:ca' ip='192.168.122.4'/>
+            <host mac='52:54:00:bc:56:ff' ip='192.168.122.5'/>
+            <host mac='52:54:00:4f:06:97' ip='192.168.122.6'/>
+            <host mac='52:54:00:c3:45:ea' ip='192.168.122.7'/>
+          </dhcp>
+        </ip>
+    </network>

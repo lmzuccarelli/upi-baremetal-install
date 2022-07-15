@@ -7,12 +7,14 @@ set -x
 VERSION="1.0.1 03/2022"
 
 # virtual network name
-NETWORK_NAME="ocp-dev"
+NETWORK_NAME="ocp-lab"
 
 # image info
 IMAGE_DIR="/images/"
-IMAGE="rhcos-4.10.3-x86_64-live.x86_64.iso"
-IMAGE_VARIANT="rhl8.0"
+#IMAGE="rhcos-4.10.3-x86_64-live.x86_64.iso"
+IMAGE=fedora-coreos-36.20220605.3.0-live.x86_64.iso
+#IMAGE_VARIANT="rhel8.0"
+IMAGE_VARIANT="fedora36"
 
 # VM image dir
 VM_IMAGE_DIR="/var/lib/libvirt/images/"
@@ -67,6 +69,10 @@ REPLICAS=1
 # master schedulable
 MASTER_SCHEDULABLE=yes
 
+# binaries
+OCP_INSTALL_PATH=~/Programs/openshift-install-linux-4.10.0-0.okd-2022-06-24-212905
+OCP_CLIENT_PATH=~/Programs/openshift-client-linux-4.10.0-0.okd-2022-06-24-212905
+
 # hard coded server names and menu input
 # leave these values as is - it could cause major mayhem
 
@@ -86,7 +92,7 @@ MASTER_SCHEDULABLE=yes
 
 getMac () {
   case $1 in
-    bootstrap)
+  bootstrap)
       echo ${BOOTSTRAP}
     ;;
   cp1)
@@ -221,7 +227,7 @@ frontend k8s_api_frontend
 backend k8s_api_backend
     mode tcp
     balance source
-    server      ocp-bootstrap $BOOTSTRAP_IP check
+    server      ocp-bootstrap $BOOTSTRAP_IP:6443 check
     server      ocp-cp1 $CP1_IP:6443 check
     server      ocp-cp2 $CP2_IP:6443 check
     server      ocp-cp3 $CP3_IP:6443 check
@@ -294,7 +300,7 @@ EOF
     exit 0
   ;;
   manifests)
-    openshift-install create manifests --dir ~/${INSTALL_DIR}
+    $OCP_INSTALL_PATH/openshift-install create manifests --dir ~/${INSTALL_DIR}
     if [ "$MASTER_SCHEDULABLE" == "no" ];
     then
       sed -i 's/mastersSchedulable: true/mastersSchedulable: false/' ~/${INSTALL_DIR}/manifests/cluster-scheduler-02-config.yml
@@ -302,7 +308,7 @@ EOF
     exit 0
   ;;
   ignition)
-    openshift-install create ignition-configs --dir ~/${INSTALL_DIR}
+    $OCP_INSTALL_PATH/openshift-install create ignition-configs --dir ~/${INSTALL_DIR}
     exit 0
   ;;
   copy)
@@ -323,20 +329,20 @@ EOF
     <network connections='7'>
         <name>${NETWORK_NAME}</name>
         <forward mode='nat'>
-              <nat>
+          <nat>
             <port start='1024' end='65535'/>
-              </nat>
+          </nat>
         </forward>
         <bridge name='virbr0' stp='on' delay='0'/>
         <mac address='$HOST_MAC'/>
         <domain name='$NETWORK_NAME' localOnly='yes'/>
-        <dns>
-            <host ip='$HOST_IP'>
-                <hostname>gateway</hostname>
-            </host>
-        </dns>
+        <!--<dns>
+          <host ip='$HOST_IP'>
+            <hostname>gateway</hostname>
+          </host>
+        </dns> -->
         <ip address='$IP_ADDRESS' netmask='255.255.255.0'>
-              <dhcp>
+          <dhcp>
             <range start='$START_ADDRESS' end='$END_ADDRESS'/>
             <host mac='$BOOTSTRAP' ip='$BOOTSTRAP_IP'/>
             <host mac='$CP1' ip='$CP1_IP'/>
@@ -345,7 +351,7 @@ EOF
             <host mac='$W1' ip='$W1_IP'/>
             <host mac='$W2' ip='$W2_IP'/>
             <host mac='$W3' ip='$W3_IP'/>
-              </dhcp>
+          </dhcp>
         </ip>
     </network>
 EOF
@@ -373,9 +379,10 @@ EOF
     # then restart them and move on to ocp-install
     if [ "$#" -ne 3 ];
     then
+        echo -e "usage: vm [bootstrap,cp1,cp2,cp3,w1,w2,w3] ok"
         echo -e "vm type parameter needs to be specified"
         echo -e "select one [bootstrap,cp1,cp2,cp3,w1,w2,w3]"
-      exit 0
+        exit 0
     fi
     echo -e "${VERSION}"
     echo -e "installing $2 vm"
@@ -394,12 +401,12 @@ EOF
         echo -e "usage: ocp-install [bootstrap,install]"
         exit 0
     fi
-    openshift-install --dir ~$INSTALL_DIR wait-for ${2}-complete --log-level=debug
+    $OCP_INSTALL_PATH/openshift-install --dir ~/$INSTALL_DIR wait-for ${2}-complete --log-level=debug
     exit 0
   ;;
   approve-certs)
     # approve pending csr
-    oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
+    $OC_CLIENT_PATH/oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
     exit 0
   ;;
   image-registry)
@@ -454,8 +461,8 @@ spec:
   storageClassName: sc-nfs
   volumeMode: Filesystem
 EOF
-  oc create -f storageclass.yaml
-  oc create -f pv.yaml
+  $OCP_CLIENT_PATH/oc create -f storageclass.yaml
+  $OCP_CLIENT_PATH/oc create -f pv.yaml
   ;;
 esac
 
