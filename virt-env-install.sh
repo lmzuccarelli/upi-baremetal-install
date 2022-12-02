@@ -3,24 +3,41 @@
 set -o pipefail
 set -x
 
+# okd or ocp
+# okd - openshift kubernetes distribution
+# ocp - openshift container platform
+TYPE=okd
+#TYPE=ocp
+#
+
+# Tekton latest version
+TEKTON_VERSION=0.28.0
+
+# Fedora CoreOS Version
+FEDORA_VERSION=37.20221106.3.0
+
+# OKD latest version
+OKD_VERSION=4.11.0-0.okd-2022-11-19-050030
+
 # version
 VERSION="1.0.1 03/2022"
 
 # virtual network name
-NETWORK_NAME="ocp-lab"
+#NETWORK_NAME="okd-lab"
+NETWORK_NAME="${TYPE}-lab"
 
-# image info
+# image dreictory
 IMAGE_DIR="/images/"
-#IMAGE="rhcos-4.10.3-x86_64-live.x86_64.iso"
-IMAGE=fedora-coreos-36.20220605.3.0-live.x86_64.iso
+
 #IMAGE_VARIANT="rhel8.0"
-IMAGE_VARIANT="fedora36"
+IMAGE_VARIANT="fedora37"
 
 # VM image dir
 VM_IMAGE_DIR="/var/lib/libvirt/images/"
 
 # domain and cluster name
-DOMAIN="ocp.lan"
+#DOMAIN="okd.lan"
+DOMAIN="${TYPE}.lan"
 CLUSTER="lab"
 
 # install dir
@@ -61,7 +78,7 @@ PULL_SECRET=~/Downloads/pull-secret
 SSH_KEY=~/.ssh/id_rsa.pub
 
 # http server file  directory
-HTTPD_SERVER_FILES=/var/www/html/ocp
+HTTPD_SERVER_FILES=/var/www/html/okd
 
 # master replicas
 REPLICAS=1
@@ -69,15 +86,12 @@ REPLICAS=1
 # master schedulable
 MASTER_SCHEDULABLE=yes
 
-# binaries
-OCP_INSTALL_PATH=~/Programs/openshift-install-linux-4.10.0-0.okd-2022-06-24-212905
-OCP_CLIENT_PATH=~/Programs/openshift-client-linux-4.10.0-0.okd-2022-06-24-212905
 
 # hard coded server names and menu input
 # leave these values as is - it could cause major mayhem
 
 # NAME         VM NAME         MENU INPUT
-# bootstrap -> ocp-bootstrap  bootstrap
+# bootstrap -> ocp-bootstrap   bootstrap
 # master 1  -> ocp-cp1         cp1
 # master 2  -> ocp-cp2         cp2
 # master 3  -> ocp-cp3         cp3
@@ -118,7 +132,7 @@ getMac () {
 
 case ${1} in
   help)
-    echo -e "usage : ./virt-env-install.sh [preflight,dnsconfig,haproxy,config,manifests,ignition,network,vm]"
+    echo -e "usage : ./virt-env-install.sh [preflight,dnsconfig,haproxy,config,manifests,ignition,network,vm,tekton]"
     exit 0
   ;;
   preflight)
@@ -144,20 +158,20 @@ case ${1} in
     interface=${HOST_INTERFACE}
     domain=${DOMAIN}
     expand-hosts
-    address=/ocp-bootstrap.${CLUSTER}.${DOMAIN}/${BOOTSTRAP_IP}
-    host-record=ocp-bootstrap.${CLUSTER}.${DOMAIN},${BOOTSTRAP_IP}
-    address=/ocp-cp1.${CLUSTER}.${DOMAIN}/${CP1_IP}
-    host-record=ocp-cp1.${CLUSTER}.${DOMAIN},${CP1_IP}
-    address=/ocp-cp2.${CLUSTER}.${DOMAIN}/${CP2_IP}
-    host-record=ocp-cp2.${CLUSTER}.${DOMAIN},${CP2_IP}
-    address=/ocp-cp3.${CLUSTER}.${DOMAIN}/${CP3_IP}
-    host-record=ocp-cp3.${CLUSTER}.${DOMAIN},${CP3_IP}
-    address=/ocp-w1.${CLUSTER}.${DOMAIN}/${W1_IP}
-    host-record=ocp-w1.${CLUSTER}.${DOMAIN},${W1_IP}
-    address=/ocp-w2.${CLUSTER}.${DOMAIN}/${W2_IP}
-    host-record=ocp-w2.${CLUSTER}.${DOMAIN},${W2_IP}
-    address=/ocp-w3.${CLUSTER}.${DOMAIN}/${W3_ip}
-    host-record=ocp-w3.${CLUSTER}.${DOMAIN},${W3_IP}
+    address=/${TYPE}-bootstrap.${CLUSTER}.${DOMAIN}/${BOOTSTRAP_IP}
+    host-record=${TYPE}-bootstrap.${CLUSTER}.${DOMAIN},${BOOTSTRAP_IP}
+    address=/${TYPE}-cp1.${CLUSTER}.${DOMAIN}/${CP1_IP}
+    host-record=${TYPE}-cp1.${CLUSTER}.${DOMAIN},${CP1_IP}
+    address=/${TYPE}-cp2.${CLUSTER}.${DOMAIN}/${CP2_IP}
+    host-record=${TYPE}-cp2.${CLUSTER}.${DOMAIN},${CP2_IP}
+    address=/${TYPE}-cp3.${CLUSTER}.${DOMAIN}/${CP3_IP}
+    host-record=${TYPE}-cp3.${CLUSTER}.${DOMAIN},${CP3_IP}
+    address=/${TYPE}-w1.${CLUSTER}.${DOMAIN}/${W1_IP}
+    host-record=${TYPE}-w1.${CLUSTER}.${DOMAIN},${W1_IP}
+    address=/${TYPE}-w2.${CLUSTER}.${DOMAIN}/${W2_IP}
+    host-record=${TYPE}-w2.${CLUSTER}.${DOMAIN},${W2_IP}
+    address=/${TYPE}-w3.${CLUSTER}.${DOMAIN}/${W3_ip}
+    host-record=${TYPE}-w3.${CLUSTER}.${DOMAIN},${W3_IP}
     address=/api.${CLUSTER}.${DOMAIN}/${HOST_IP}
     address=/api-int.${CLUSTER}.${DOMAIN}/${HOST_IP}
     address=/etcd-0.${CLUSTER}.${DOMAIN}/${CP1_IP}
@@ -168,10 +182,10 @@ case ${1} in
     srv-host=_etcd-server-ssl._tcp,etcd-1.${CLUSTER}.${DOMAIN},2380
     srv-host=_etcd-server-ssl._tcp,etcd-2.${CLUSTER}.${DOMAIN},2380
     address=/oauth-openshift.apps.${CLUSTER}.${DOMAIN}/${HOST_IP}
-    address=/console-openshift-console.apps.${CLUSTER}.${DOMAIN}/${HOST_IP}    
+    address=/console-openshift-console.apps.${CLUSTER}.${DOMAIN}/${HOST_IP}
 EOF
     sudo cp dnsmasq.conf /etc/dnsmasq.conf
-    sudo /usr/sbin/dnsmqasq --conf-file=/etc/dnsmasq.conf
+    sudo /usr/sbin/dnsmasq --conf-file=/etc/dnsmasq.conf
     exit 0
   ;;
 haproxy)
@@ -227,10 +241,10 @@ frontend k8s_api_frontend
 backend k8s_api_backend
     mode tcp
     balance source
-    server      ocp-bootstrap $BOOTSTRAP_IP:6443 check
-    server      ocp-cp1 $CP1_IP:6443 check
-    server      ocp-cp2 $CP2_IP:6443 check
-    server      ocp-cp3 $CP3_IP:6443 check
+    server      ${TYPE}-bootstrap $BOOTSTRAP_IP:6443 check
+    server      ${TYPE}-cp1 $CP1_IP:6443 check
+    server      ${TYPE}-cp2 $CP2_IP:6443 check
+    server      ${TYPE}-cp3 $CP3_IP:6443 check
 
 # OCP Machine Config Server
 frontend ocp_machine_config_server_frontend
@@ -241,10 +255,10 @@ frontend ocp_machine_config_server_frontend
 backend ocp_machine_config_server_backend
     mode tcp
     balance source
-    server      ocp-bootstrap $BOOTSTRAP_IP:22623 check
-    server      ocp-cp1 $CP1_IP:22623 check
-    server      ocp-cp2 $CP2_IP:22623 check
-    server      ocp-cp3 $CP3_IP:22623 check
+    server      ${TYPE}-bootstrap $BOOTSTRAP_IP:22623 check
+    server      ${TYPE}-cp1 $CP1_IP:22623 check
+    server      ${TYPE}-cp2 $CP2_IP:22623 check
+    server      ${TYPE}-cp3 $CP3_IP:22623 check
 
 # OCP Ingress - layer 4 tcp mode for each. Ingress Controller will handle layer 7.
 frontend ocp_http_ingress_frontend
@@ -255,12 +269,12 @@ frontend ocp_http_ingress_frontend
 backend ocp_http_ingress_backend
     balance source
     mode tcp
-    server      ocp-cp1 $CP1_IP:80 check
-    server      ocp-cp2 $CP2_IP:80 check
-    server      ocp-cp3 $CP3_IP:80 check
-    server      ocp-w1 $W1_IP:80 check
-    server      ocp-w2 $W2_IP:80 check
-    server      ocp-w3 $W3_IP:80 check
+    server      ${TYPE}-cp1 $CP1_IP:80 check
+    server      ${TYPE}-cp2 $CP2_IP:80 check
+    server      ${TYPE}-cp3 $CP3_IP:80 check
+    server      ${TYPE}-w1 $W1_IP:80 check
+    server      ${TYPE}-w2 $W2_IP:80 check
+    server      ${TYPE}-w3 $W3_IP:80 check
 
 frontend ocp_https_ingress_frontend
     bind *:443
@@ -270,12 +284,12 @@ frontend ocp_https_ingress_frontend
 backend ocp_https_ingress_backend
     mode tcp
     balance source
-    server      ocp-cp1 $CP1_IP:443 check
-    server      ocp-cp2 $CP2_IP:443 check
-    server      ocp-cp3 $CP3_IP:443 check
-    server      ocp-w1 $W1_IP:443 check
-    server      ocp-w2 $W2_IP:443 check
-    server      ocp-w3 $W3_IP:443 check
+    server      ${TYPE}-cp1 $CP1_IP:443 check
+    server      ${TYPE}-cp2 $CP2_IP:443 check
+    server      ${TYPE}-cp3 $CP3_IP:443 check
+    server      ${TYPE}-w1 $W1_IP:443 check
+    server      ${TYPE}-w2 $W2_IP:443 check
+    server      ${TYPE}-w3 $W3_IP:443 check
 EOF
   sudo cp haproxy.cfg /etc/haproxy/haproxy.cfg
   sudo systemctl restart haproxy
@@ -300,7 +314,7 @@ EOF
     exit 0
   ;;
   manifests)
-    $OCP_INSTALL_PATH/openshift-install create manifests --dir ~/${INSTALL_DIR}
+    openshift-install create manifests --dir ~/${INSTALL_DIR}
     if [ "$MASTER_SCHEDULABLE" == "no" ];
     then
       sed -i 's/mastersSchedulable: true/mastersSchedulable: false/' ~/${INSTALL_DIR}/manifests/cluster-scheduler-02-config.yml
@@ -308,7 +322,7 @@ EOF
     exit 0
   ;;
   ignition)
-    $OCP_INSTALL_PATH/openshift-install create ignition-configs --dir ~/${INSTALL_DIR}
+    openshift-install create ignition-configs --dir ~/${INSTALL_DIR}
     exit 0
   ;;
   copy)
@@ -387,11 +401,12 @@ EOF
     echo -e "${VERSION}"
     echo -e "installing $2 vm"
     MAC=$(getMac $2)
+    MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "22000"; fi)
     if [ "$3" == "dry-run" ];
     then
-       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ocp-$2 --ram 16000 --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
+       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
     else
-        sudo virt-install --connect qemu:///system --virt-type kvm --name ocp-$2 --ram 16000 --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}
+        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}
     fi
     exit 0
   ;;
@@ -401,12 +416,12 @@ EOF
         echo -e "usage: ocp-install [bootstrap,install]"
         exit 0
     fi
-    $OCP_INSTALL_PATH/openshift-install --dir ~/$INSTALL_DIR wait-for ${2}-complete --log-level=debug
+    openshift-install --dir ~/$INSTALL_DIR wait-for ${2}-complete --log-level=debug
     exit 0
   ;;
   approve-certs)
     # approve pending csr
-    $OC_CLIENT_PATH/oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
+    oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
     exit 0
   ;;
   image-registry)
@@ -461,8 +476,30 @@ spec:
   storageClassName: sc-nfs
   volumeMode: Filesystem
 EOF
-  $OCP_CLIENT_PATH/oc create -f storageclass.yaml
-  $OCP_CLIENT_PATH/oc create -f pv.yaml
+  oc create -f storageclass.yaml
+  oc create -f pv.yaml
+  ;;
+  tekton)
+    echo -e "Installing tekton $TEKTON_VERSION to ~/Program/tekton"
+    curl -k -L https://github.com/tektoncd/cli/releases/download/v${TEKTON_VERSION}/tkn_${TEKTON_VERSION}_Linux_x86_64.tar.gz -o ~/Downloads/tkn_${TEKTON_VERSION}_Linux_x86_64.tar.gz
+    sudo tar -xvf ~/Downloads/tkn_${TEKTON_VERSION}_Linux_x86_64.tar.gz -C ~/Programs/tekton
+    rm -rf ~/Downlaods/tkn_${TEKTON_VERSION}_Linux_x86_64.tar.gz
+    alias tkn=~/Programs/tekton/tkn
+  ;;
+  fedora)
+    echo -e "Retrieving and copying fedora iso and raw tar files (version $FEDORA_VERSION) to ~/images"
+    curl -k -L  https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/${FEDORA_VESION}/x86_64/fedora-coreos-${FEDORA_VESION}-live.x86_64.iso -o /images/fedora-coreos-37.iso
+    # copy directly to the apache web server html ${TYPE} directory
+    sudo curl -k -L https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/${FEDORA_VERSION}/x86_64/fedora-coreos-${FEDORA_VERSION}-metal.x86_64.raw.xz -o /var/www/html/${TYPE}/fedora-coreos
+  ;;
+  okd-release)
+    echo -e "Installing OKD client and installer artifacts (version $OKD_VERSION) to /usr/local/bin"
+    curl -k -L https://github.com/okd-project/okd/releases/download/${OKD_VERSION}/openshift-client-linux-${OKD_VERSION}.tar.gz -o ~/Downloads/oc-client.tar.gz
+    curl -k -L https://github.com/okd-project/okd/releases/download/${OKD_VERSION}/openshift-install-linux-${OKD_VERSION}.tar.gz -o ~/Downloads/oc-install.tar.gz
+    sudo tar -xvf ~/Downloads/oc-client.tar.gz -C /usr/local/bin
+    rm -rf ~/Downloads/oc-client.tar.gz
+    sudo tar -xvf ~/Downloads/oc-install.tar.gz -C /usr/local/bin
+    rm -rf ~/Downloads/oc-install.tar.gz
   ;;
 esac
 
