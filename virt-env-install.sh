@@ -30,7 +30,7 @@ NETWORK_NAME="${TYPE}-lab"
 IMAGE_DIR="/images/"
 
 #IMAGE_VARIANT="rhel8.0"
-IMAGE_VARIANT="fedora37"
+IMAGE_VARIANT="fedora36"
 
 # VM image dir
 VM_IMAGE_DIR="/var/lib/libvirt/images/"
@@ -78,7 +78,7 @@ PULL_SECRET=~/Downloads/pull-secret
 SSH_KEY=~/.ssh/id_rsa.pub
 
 # http server file  directory
-HTTPD_SERVER_FILES=/var/www/html/okd
+HTTPD_SERVER_FILES=/var/www/html/${TYPE}
 
 # master replicas
 REPLICAS=1
@@ -304,9 +304,8 @@ EOF
     rm -rf ~/$INSTALL_DIR/*.ign
     rm -rf ~/$INSTALL_DIR/*.json
     rm -rf ~/$INSTALL_DIR/.openshift*
-    sed -i "s/update-replica/$REPLICAS/g" ~/${INSTALL_DIR}/install-config.yaml
-    sed -i "s/update-domain/$DOMAIN/g" ~/${INSTALL_DIR}/install-config.yaml
-    sed -i "s/update-cluster/$CLUSTER/g" ~/${INSTALL_DIR}/install-config.yaml
+    sed -i "s/CP_REPLICAS/$REPLICAS/g" ~/${INSTALL_DIR}/install-config.yaml
+    sed -i "s/DOMAIN/$DOMAIN/g" ~/${INSTALL_DIR}/install-config.yaml
     SECRET=$(cat ${PULL_SECRET})
     echo -e "pullSecret: '$SECRET'" >> ~/${INSTALL_DIR}/install-config.yaml
     KEY=$(cat ${SSH_KEY})
@@ -327,12 +326,12 @@ EOF
   ;;
   copy)
     # first ensure that both manifests and ignition are completed before copying
-    rm -rf $HTTPD_SERVER_FILES/auth/
-    rm -rf $HTTPD_SERVER_FILES/*.ign
-    rm -rf $HTTPD_SERVER_FILES/*.json
-    rm -rf $HTTPD_SERVER_FILES/.openshift*
-    cp -r ~/${INSTALL_DIR}/* ${HTTPD_SERVER_FILES}/
-    chmod -R 777 ${HTTPD_SERVER_FILES}/
+    sudo rm -rf $HTTPD_SERVER_FILES/auth/
+    sudo rm -rf $HTTPD_SERVER_FILES/*.ign
+    sudo rm -rf $HTTPD_SERVER_FILES/*.json
+    sudo rm -rf $HTTPD_SERVER_FILES/.openshift*
+    sudo cp -r ~/${INSTALL_DIR}/* ${HTTPD_SERVER_FILES}/
+    sudo chmod -R 777 ${HTTPD_SERVER_FILES}/
     sudo systemctl restart httpd
   ;;
   network)
@@ -402,11 +401,12 @@ EOF
     echo -e "installing $2 vm"
     MAC=$(getMac $2)
     MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "22000"; fi)
+    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "10"; else echo "30"; fi)
     if [ "$3" == "dry-run" ];
     then
-       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
+       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
     else
-        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk path=${VM_IMAGE_DIR}ocp-$2.img,size=100 --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}
+        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}
     fi
     exit 0
   ;;
