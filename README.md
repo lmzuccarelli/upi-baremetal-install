@@ -38,10 +38,10 @@ A simple workflow
 stop and install on each vm (via console) using 
 
 - for bootstrap
-  -- sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/bootstrap.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
+-- sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/bootstrap.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
 
 - for master/worker
-  -- sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/master.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
+-- sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/master.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
 
 reboot all images once install is completed
 
