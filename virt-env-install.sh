@@ -27,6 +27,7 @@ IMAGE=fedora-coreos-38.20230806.1.0.iso
 # https://github.com/okd-project/okd/releases
 OKD_VERSION=4.13.0-0.okd-2023-08-04-164726
 
+
 # version
 VERSION="1.0.1 03/2022"
 
@@ -361,7 +362,7 @@ EOF
         <mac address='$HOST_MAC'/>
         <domain name='$NETWORK_NAME' localOnly='yes'/>
         <dns>
-          <forwarder addr="192.168.0.29"/>
+          <forwarder addr="$HOST_BASE_ADDRESS"/>
         </dns>
         <ip address='$IP_ADDRESS' netmask='255.255.255.0'>
           <dhcp>
