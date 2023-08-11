@@ -11,13 +11,21 @@ TYPE=okd
 #
 
 # Tekton latest version
-TEKTON_VERSION=0.28.0
+TEKTON_VERSION=0.47.4
 
 # Fedora CoreOS Version
-FEDORA_VERSION=37.20221106.3.0
+# https://fedoraproject.org/it/coreos/download/?stream=stable#arches
+# for older versions 
+# https://builds.coreos.fedoraproject.org/browser
+
+#FEDORA_VERSION=38.20230709.3
+#IMAGE=fedora-coreos-38.20230709.3.0.iso
+FEDORA_VERSION=38.20230806.1.0
+IMAGE=fedora-coreos-38.20230806.1.0.iso
 
 # OKD latest version
-OKD_VERSION=4.11.0-0.okd-2022-11-19-050030
+# https://github.com/okd-project/okd/releases
+OKD_VERSION=4.13.0-0.okd-2023-08-04-164726
 
 # version
 VERSION="1.0.1 03/2022"
@@ -30,7 +38,9 @@ NETWORK_NAME="${TYPE}-lab"
 IMAGE_DIR="/images/"
 
 #IMAGE_VARIANT="rhel8.0"
-IMAGE_VARIANT="fedora36"
+IMAGE_VARIANT="fedora-coreos-stable"
+# stable, test, next
+IMAGE_TYPE="stable" 
 
 # VM image dir
 VM_IMAGE_DIR="/var/lib/libvirt/images/"
@@ -52,7 +62,7 @@ END_ADDRESS="192.168.122.254"
 
 # nfs
 NFS_SHARE_DIR="/share/registry"
-HOST_BASE_ADDRESS="192.168.8.122"
+HOST_BASE_ADDRESS="192.168.0.29"
 
 # mac address setup
 BOOTSTRAP='52:54:00:3f:de:37'
@@ -74,6 +84,7 @@ W2_IP='192.168.122.6'
 W3_IP='192.168.122.7'
 
 # pull secret and ssh key
+# https://console.redhat.com/openshift/install/pull-secret
 PULL_SECRET=~/Downloads/pull-secret
 SSH_KEY=~/.ssh/id_rsa.pub
 
@@ -349,11 +360,9 @@ EOF
         <bridge name='virbr0' stp='on' delay='0'/>
         <mac address='$HOST_MAC'/>
         <domain name='$NETWORK_NAME' localOnly='yes'/>
-        <!--<dns>
-          <host ip='$HOST_IP'>
-            <hostname>gateway</hostname>
-          </host>
-        </dns> -->
+        <dns>
+          <forwarder addr="192.168.0.29"/>
+        </dns>
         <ip address='$IP_ADDRESS' netmask='255.255.255.0'>
           <dhcp>
             <range start='$START_ADDRESS' end='$END_ADDRESS'/>
@@ -401,12 +410,12 @@ EOF
     echo -e "installing $2 vm"
     MAC=$(getMac $2)
     MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "22000"; fi)
-    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "10"; else echo "30"; fi)
+    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "30"; else echo "50"; fi)
     if [ "$3" == "dry-run" ];
     then
-       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
+       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
     else
-        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}
+        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT} --noreboot --noautoconsole
     fi
     exit 0
   ;;
@@ -430,7 +439,7 @@ EOF
     # oc edit configs.imageregistry.operator.openshift.io
     # update the managementState to
     # managementState: Managed
-    # update the storage sectio to
+    # update the storage section to
     # storage:
     #   pvc:
     #     claim: # leave the claim blank
@@ -488,9 +497,9 @@ EOF
   ;;
   fedora)
     echo -e "Retrieving and copying fedora iso and raw tar files (version $FEDORA_VERSION) to ~/images"
-    curl -k -L  https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/${FEDORA_VESION}/x86_64/fedora-coreos-${FEDORA_VESION}-live.x86_64.iso -o /images/fedora-coreos-37.iso
+    curl -k -L  https://builds.coreos.fedoraproject.org/prod/streams/${IMAGE_TYPE}/builds/${FEDORA_VERSION}/x86_64/fedora-coreos-${FEDORA_VERSION}-live.x86_64.iso -o /images/fedora-coreos-${FEDORA_VERSION}.iso
     # copy directly to the apache web server html ${TYPE} directory
-    sudo curl -k -L https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/${FEDORA_VERSION}/x86_64/fedora-coreos-${FEDORA_VERSION}-metal.x86_64.raw.xz -o /var/www/html/${TYPE}/fedora-coreos
+    sudo curl -k -L https://builds.coreos.fedoraproject.org/prod/streams/${IMAGE_TYPE}/builds/${FEDORA_VERSION}/x86_64/fedora-coreos-${FEDORA_VERSION}-metal.x86_64.raw.xz -o /var/www/html/${TYPE}/fedora-coreos
   ;;
   okd-release)
     echo -e "Installing OKD client and installer artifacts (version $OKD_VERSION) to /usr/local/bin"

@@ -20,13 +20,23 @@ A simple workflow
 
 ./virt-env-install.sh config
 ./virt-env-install.sh dnsconfig
-# Manually test your dns setup - refer to document
+# Stop and check/test your dns setup - refer to document
 ./virt-env-install.sh haproxy
 ./virt-env-install.sh firewall
 ./virt-env-install.sh network
 ./virt-env-install.sh manifests
 ./virt-env-install.sh ignition
 ./virt-env-install.sh copy
+
+# Stop and install on each vm using 
+# for bootstrap
+#   sudo coreos-installer install /dev/sda --ignition-url http://xxx:8080/okd/bootstrap.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
+# for worker
+#   sudo coreos-installer install /dev/sda --ignition-url http://xxx:8080/okd/worker.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure*
+
+# Reboot all images once install is completed
+# You can now continue with the install 
+
 ./virt-env-install.sh vm bootstrap ok (repeat this for each vm needed)
 ./virt-env-install.sh ocp-install bootstrap
 ./virt-env-install.sh ocp-install install
