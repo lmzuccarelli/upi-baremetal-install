@@ -416,7 +416,7 @@ EOF
     then
        echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
     else
-        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT} --noreboot --noautoconsole
+        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT} --noreboot #--noautoconsole
     fi
     exit 0
   ;;
