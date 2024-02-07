@@ -20,12 +20,12 @@ TEKTON_VERSION=0.47.4
 
 #FEDORA_VERSION=38.20230709.3
 #IMAGE=fedora-coreos-38.20230709.3.0.iso
-FEDORA_VERSION=38.20230806.1.0
-IMAGE=fedora-coreos-38.20230806.1.0.iso
+FEDORA_VERSION=39.20231106.1.1
+IMAGE=fedora-coreos-39.20231106.1.1.iso
 
 # OKD latest version
 # https://github.com/okd-project/okd/releases
-OKD_VERSION=4.13.0-0.okd-2023-08-04-164726
+OKD_VERSION=4.14.0-0.okd-2023-10-28-073550
 
 
 # version
@@ -63,7 +63,7 @@ END_ADDRESS="192.168.122.254"
 
 # nfs
 NFS_SHARE_DIR="/share/registry"
-HOST_BASE_ADDRESS="192.168.0.29"
+HOST_BASE_ADDRESS=$(hostname -I | awk '{print $1}')
 
 # mac address setup
 BOOTSTRAP='52:54:00:3f:de:37'
@@ -410,8 +410,8 @@ EOF
     echo -e "${VERSION}"
     echo -e "installing $2 vm"
     MAC=$(getMac $2)
-    MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "22000"; fi)
-    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "30"; else echo "50"; fi)
+    MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "20000"; fi)
+    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "30"; else echo "100"; fi)
     if [ "$3" == "dry-run" ];
     then
        echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
