@@ -1,67 +1,18 @@
-# Overview 
+# OpenShift Install
 
-**ocp-baremetal-install**
+The OpenShift installer `openshift-install` makes it easy to get a cluster
+running on the public cloud or your local infrastructure.
 
-A simple (naive) script to setup vm networking, vm's and install rhcos on the vm's  for a minimal openshift install 
+To learn more about installing OpenShift, visit [docs.openshift.com](https://docs.openshift.com)
+and select the version of OpenShift you are using.
 
-## Document
+## Installing the tools
 
-Please refer to this [document](https://docs.google.com/document/d/19QjzNBDRgNiTk-LGki_xpi-lv8i_LRgf3dpOHSQ-_YI/edit) - RedHat access only 
+After extracting this archive, you can move the `openshift-install` binary
+to a location on your PATH such as `/usr/local/bin`, or keep it in a temporary
+directory and reference it via `./openshift-install`.
 
-## RedHat Documentation
+## License
 
-Please refer to this [link](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal/installing-bare-metal.html)
-
-### Description
-
-This is a simple helper script that will make the install of a multi-node or single node openshift cluster simpler
-Its naive (it has manual steps and mauybe at a  later stage will be fully automated)
-
-### Usage
-
-A simple workflow 
-
-```sh
-
-./virt-env-install.sh config
-./virt-env-install.sh dnsconfig
-# stop and check/test your dns setup - refer to document
-./virt-env-install.sh haproxy
-./virt-env-install.sh firewall
-./virt-env-install.sh network
-./virt-env-install.sh manifests
-./virt-env-install.sh ignition
-./virt-env-install.sh copy
-
-```
-
-stop and install on each vm (via console) using 
-
-- for bootstrap
-
-```sh
-sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/bootstrap.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure
-```
-
-- for master/worker
-
-```sh
-sudo coreos-installer install /dev/vda --ignition-url http://xxx:8080/okd/master.ign --image-url http://xxx:8080/okd/fedora-coreos --insecure-ignition --insecure
-```
-
-reboot all images once install is completed
-
-continue with the install 
-
-```sh
-./virt-env-install.sh vm bootstrap ok (repeat this for each vm needed)
-./virt-env-install.sh vm cp1 ok (repeat this for each vm needed)
-./virt-env-install.sh ocp-install bootstrap
-./virt-env-install.sh ocp-install install
-
-
-```
-
-### Acknowledgement
-
-Thanks to Ryan Hay for his work on [ocp4-metal-install](https://github.com/ryanhay/ocp4-metal-install") 
+OpenShift is licensed under the Apache Public License 2.0. The source code for this
+program is [located on github](https://github.com/openshift/installer).

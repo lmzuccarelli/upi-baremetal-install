@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: vm-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /shares/vm
+    server: 192.168.122.1

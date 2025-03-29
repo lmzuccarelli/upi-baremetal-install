@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-statefulset
+  namespace: default
+  labels:
+    app: redis
+spec:
+  serviceName: "redis"
+  replicas: 1 # Set to 1 for a single instance
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          image: redis:latest
+          command: ["redis-server"]
+          args:
+            - "--port"
+            - "6379"
+            - "--dir"
+            - "/mnt/redis/data"
+            - "--appendonly"
+            - "yes"
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /mnt/redis/data
+          securityContext:
+            fsGroup: 1004
+            #runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data-pvc

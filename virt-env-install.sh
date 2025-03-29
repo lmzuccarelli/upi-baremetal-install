@@ -6,8 +6,8 @@ set -x
 # okd or ocp
 # okd - openshift kubernetes distribution
 # ocp - openshift container platform
-TYPE=okd
-#TYPE=ocp
+#TYPE=okd
+TYPE=ocp
 #
 
 # Tekton latest version
@@ -20,12 +20,14 @@ TEKTON_VERSION=0.47.4
 
 #FEDORA_VERSION=38.20230709.3
 #IMAGE=fedora-coreos-38.20230709.3.0.iso
-FEDORA_VERSION=39.20231106.1.1
-IMAGE=fedora-coreos-39.20231106.1.1.iso
+#FEDORA_VERSION=39.20231106.1.1
+#IMAGE=fedora-coreos-39.20231106.1.1.iso
+IMAGE=rhcos-live.x86_64.iso
+
 
 # OKD latest version
 # https://github.com/okd-project/okd/releases
-OKD_VERSION=4.14.0-0.okd-2023-10-28-073550
+#OKD_VERSION=4.14.0-0.okd-2023-10-28-073550
 
 
 # version
@@ -36,10 +38,10 @@ VERSION="1.0.1 03/2022"
 NETWORK_NAME="${TYPE}-lab"
 
 # image dreictory
-IMAGE_DIR="/images/"
+IMAGE_DIR="/var/lib/libvirt/images"
 
-#IMAGE_VARIANT="rhel8.0"
-IMAGE_VARIANT="fedora-coreos-stable"
+IMAGE_VARIANT="rhel9.0"
+#IMAGE_VARIANT="fedora-coreos-stable"
 # stable, test, next
 IMAGE_TYPE="stable" 
 
@@ -47,12 +49,11 @@ IMAGE_TYPE="stable"
 VM_IMAGE_DIR="/var/lib/libvirt/images/"
 
 # domain and cluster name
-#DOMAIN="okd.lan"
 DOMAIN="${TYPE}.lan"
 CLUSTER="lab"
 
 # install dir
-INSTALL_DIR="/ocp-install"
+INSTALL_DIR="ocp-install"
 
 # host info
 HOST_MAC="52:54:00:4c:33:95"
@@ -86,8 +87,8 @@ W3_IP='192.168.122.7'
 
 # pull secret and ssh key
 # https://console.redhat.com/openshift/install/pull-secret
-PULL_SECRET=~/Downloads/pull-secret
-SSH_KEY=~/.ssh/id_rsa.pub
+PULL_SECRET=ocp-install/pull-secret.yaml
+SSH_KEY=~/.ssh/id_ed25519.pub
 
 # http server file  directory
 HTTPD_SERVER_FILES=/var/www/html/${TYPE}
@@ -361,9 +362,9 @@ EOF
         <bridge name='virbr0' stp='on' delay='0'/>
         <mac address='$HOST_MAC'/>
         <domain name='$NETWORK_NAME' localOnly='yes'/>
-        <dns>
+        <!-- <dns>
           <forwarder addr="$HOST_BASE_ADDRESS"/>
-        </dns>
+        </dns> -->
         <ip address='$IP_ADDRESS' netmask='255.255.255.0'>
           <dhcp>
             <range start='$START_ADDRESS' end='$END_ADDRESS'/>
@@ -410,13 +411,13 @@ EOF
     echo -e "${VERSION}"
     echo -e "installing $2 vm"
     MAC=$(getMac $2)
-    MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "20000"; fi)
-    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "30"; else echo "100"; fi)
+    MEMORY=$(if [ "$2" == "bootstrap" ];then echo "8196"; else echo "16348"; fi)
+    STORAGE=$(if [ "$2" == "bootstrap" ];then echo "50"; else echo "100"; fi)
     if [ "$3" == "dry-run" ];
     then
-       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
+       echo -e "sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 8 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT}"
     else
-        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 4 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT} --noreboot #--noautoconsole
+        sudo virt-install --connect qemu:///system --virt-type kvm --name ${TYPE}-$2 --ram ${MEMORY} --disk size=${STORAGE} --vcpu 8 --vnc --cdrom ${IMAGE_DIR}/${IMAGE} --network network=${NETWORK_NAME},mac=${MAC} --os-variant ${IMAGE_VARIANT} --noreboot #--noautoconsole
     fi
     exit 0
   ;;
